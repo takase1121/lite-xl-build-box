@@ -18,9 +18,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# https://github.com/lukewiwa/manylinux2014
-# this image supports multi-platform builds
-FROM docker.io/lukewiwa/manylinux2014
+ARG TARGETARCH
+
+FROM quay.io/pypa/manylinux2014_x86_64 AS base-amd64
+FROM quay.io/pypa/manylinux2014_aarch64 AS base-arm64
+
+FROM base-${TARGETARCH}
 
 # add the entrypoint into the image
 COPY entrypoint.sh /
@@ -32,7 +35,7 @@ ARG PYTHON_VERSION=cp311-cp311
 ARG TARGETARCH
 
 # lpm version to install
-ARG LPM_VERSION=v1.3.1
+ARG LPM_VERSION=v1.5.1
 
 # use the manylinux built-in CPython
 ENV PATH="/opt/python/$PYTHON_VERSION/bin:$PATH"
@@ -40,7 +43,7 @@ ENV PATH="/opt/python/$PYTHON_VERSION/bin:$PATH"
 # install epel on aarch64 because it is not included
 RUN if [[ $TARGETARCH = 'arm64' ]]; then \
 		yum -y update && \
-		yum -y install "https://archives.fedoraproject.org/pub/archive/epel/7/$(rpm --eval '%{_arch}')/Packages/e/epel-release-7-12.noarch.rpm" && \
+		yum -y install "https://archives.fedoraproject.org/pub/archive/epel/7/$(rpm --eval '%{_arch}')/Packages/e/epel-release-7-14.noarch.rpm" && \
 		yum -y clean all && \
 		rm -fr /var/cache; \
 	fi
@@ -49,7 +52,7 @@ RUN if [[ $TARGETARCH = 'arm64' ]]; then \
 RUN yum -y update && \
 	yum -y install wget curl zip unzip ccache fuse fuse3 sudo cmake \
 		mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel libX11-devel libXi-devel libXcursor-devel libxkbcommon-devel libXrandr-devel libXrender-devel \
-		libXext-devel libXinerama-devel dbus-devel ibus-devel libxml2-devel \
+		libXext-devel libXinerama-devel dbus-devel ibus-devel libxml2-devel libXScrnSaver-devel \
 		gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu binutils-aarch64-linux-gnu && \
 	yum -y clean all && \
 	rm -fr /var/cache
@@ -58,22 +61,22 @@ RUN yum -y update && \
 RUN pip install --no-cache-dir --no-compile meson ninja
 
 # install and build wayland
-RUN wget https://gitlab.freedesktop.org/wayland/wayland/-/releases/1.23.1/downloads/wayland-1.23.1.tar.xz && \
-	tar -xJf wayland-1.23.1.tar.xz && \
-	cd wayland-1.23.1 && \
+RUN wget https://gitlab.freedesktop.org/wayland/wayland/-/releases/1.26.0/downloads/wayland-1.26.0.tar.xz && \
+	tar -xJf wayland-1.26.0.tar.xz && \
+	cd wayland-1.26.0 && \
 	meson setup build --prefix=/usr -Dtests=false -Ddocumentation=false && \
 	meson install -C build && \
 	cd .. && \
-	rm -rf wayland-1.23.1
+	rm -rf wayland-1.26.0
 
 # install and build wayland-protocols
-RUN wget https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/1.41/downloads/wayland-protocols-1.41.tar.xz && \
-	tar -xJf wayland-protocols-1.41.tar.xz && \
-	cd wayland-protocols-1.41 && \
+RUN wget https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/1.50/downloads/wayland-protocols-1.50.tar.xz && \
+	tar -xJf wayland-protocols-1.50.tar.xz && \
+	cd wayland-protocols-1.50 && \
 	meson setup build --prefix=/usr -Dtests=false && \
 	meson install -C build && \
 	cd .. && \
-	rm -rf wayland-protocols-1.41
+	rm -rf wayland-protocols-1.50
 
 # pretend to have libdecor installed
 RUN rpm -i --force --nodeps --ignorearch "https://pkgs.sysadmins.ws/el8/base/x86_64/libdecor-devel-0.2.2-5.el8.x86_64.rpm" && \
@@ -83,9 +86,9 @@ RUN rpm -i --force --nodeps --ignorearch "https://pkgs.sysadmins.ws/el8/base/x86
 	rm -fr /var/cache
 
 # install and build SDL3
-RUN wget https://github.com/libsdl-org/SDL/releases/download/release-3.2.26/SDL3-3.2.26.tar.gz && \
-	tar -xzf SDL3-3.2.26.tar.gz && \
-	cd SDL3-3.2.26 && \
+RUN wget https://github.com/libsdl-org/SDL/releases/download/release-3.2.30/SDL3-3.2.30.tar.gz && \
+	tar -xzf SDL3-3.2.30.tar.gz && \
+	cd SDL3-3.2.30 && \
 	mkdir build && \
 	cd build && \
 	cmake -GNinja .. -DCMAKE_INSTALL_PREFIX=/usr \
@@ -97,7 +100,7 @@ RUN wget https://github.com/libsdl-org/SDL/releases/download/release-3.2.26/SDL3
 		-DSDL_X11=ON -DSDL_WAYLAND=ON -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF -DSDL_VENDOR_INFO=lite-xl && \
 	ninja install && \
 	cd ../.. && \
-	rm -rf SDL3-3.2.26
+	rm -rf SDL3-3.2.30
 
 # install appimagetool and friends
 RUN set -eux; \
@@ -122,7 +125,7 @@ RUN set -eux; \
 		;; \
 	esac; \
 	mkdir -p /opt/appimagetool/bin; \
-	wget -O /opt/appimagetool/bin/appimagetool "https://github.com/AppImage/appimagetool/releases/download/1.9.0/appimagetool-$arch.AppImage"; \
+	wget -O /opt/appimagetool/bin/appimagetool "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-$arch.AppImage"; \
 	for tool in $tools; do \
 		wget -O /opt/appimagetool/bin/$tool "https://github.com/probonopd/static-tools/releases/download/continuous/$tool-$arch"; \
 	done; \
