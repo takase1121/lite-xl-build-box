@@ -208,6 +208,7 @@ jobs:
       - name: Configure Lite XL
         uses: ./
         with:
+          image: ghcr.io/${{ github.repository }}-manylinux:${{ github.ref_name }}
           platform: ${{ matrix.platform.docker }}
           run: |
             cd lite-xl
