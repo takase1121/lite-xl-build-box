@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Generate tag
         id: tag
@@ -25,7 +25,7 @@ jobs:
           echo "TAG=${tag%%.*}" >> $GITHUB_OUTPUT
 
       - name: Update tag
-        uses: richardsimko/update-tag@v1
+        uses: richardsimko/update-tag@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -57,7 +57,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.prepare.outputs.IMAGE_NAME }}
           tags: |
@@ -68,10 +68,10 @@ jobs:
             type=semver,pattern=v{{major}}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Set up container cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-${{ steps.prepare.outputs.DIGEST_KEY }}-buildx-${{ github.sha }}
@@ -79,18 +79,18 @@ jobs:
             ${{ runner.os }}-${{ steps.prepare.outputs.DIGEST_KEY }}-buildx-
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build Docker image
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: docker
           file: docker/Dockerfile-${{ matrix.suffix }}
@@ -114,7 +114,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: digests-${{ steps.prepare.outputs.DIGEST_KEY }}
           path: /tmp/digests/*
@@ -146,18 +146,18 @@ jobs:
           echo "ORIGINAL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}-${{ matrix.image.original }}" >> $GITHUB_OUTPUT
 
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: /tmp/digests
           pattern: digests-${{ steps.prepare.outputs.DIGEST_KEY }}*
           merge-multiple: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.prepare.outputs.IMAGE_NAME }}
           tags: |
@@ -168,7 +168,7 @@ jobs:
             type=semver,pattern=v{{major}}
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -197,10 +197,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Checkout Lite XL
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: lite-xl/lite-xl
           path: lite-xl
