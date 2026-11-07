@@ -43,7 +43,7 @@ ENV PATH="/opt/python/$PYTHON_VERSION/bin:$PATH"
 # install epel on aarch64 because it is not included
 RUN if [[ $TARGETARCH = 'arm64' ]]; then \
 		yum -y update && \
-		yum -y install "https://archives.fedoraproject.org/pub/archive/epel/7/$(rpm --eval '%{_arch}')/Packages/e/epel-release-7-14.noarch.rpm" && \
+		yum -y install "https://archives.fedoraproject.org/pub/archive/epel/7/$(rpm --eval '%{_arch}')/Packages/e/epel-release-7-12.noarch.rpm" && \
 		yum -y clean all && \
 		rm -fr /var/cache; \
 	fi
